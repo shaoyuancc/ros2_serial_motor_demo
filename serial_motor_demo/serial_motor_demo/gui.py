@@ -6,7 +6,6 @@ import math
 
 from serial_motor_demo_msgs.msg import MotorCommand
 from serial_motor_demo_msgs.msg import MotorVels
-from serial_motor_demo_msgs.msg import EncoderVals
 
 
 class MotorGui(Node):
@@ -69,10 +68,10 @@ class MotorGui(Node):
         motor_btns_frame.pack()
         Button(motor_btns_frame, text='Send Once',
                command=self.send_motor_once).pack(side=LEFT)
-        Button(motor_btns_frame, text='Send Cont.',
-               command=self.show_values, state="disabled").pack(side=LEFT)
-        Button(motor_btns_frame, text='Stop Send',
-               command=self.show_values, state="disabled").pack(side=LEFT)
+        # Button(motor_btns_frame, text='Send Cont.',
+        #        command=self.show_values, state="enabled").pack(side=LEFT)
+        # Button(motor_btns_frame, text='Stop Send',
+        #        command=self.show_values, state="enabled").pack(side=LEFT)
         Button(motor_btns_frame, text='Stop Mot',
                command=self.stop_motors).pack(side=LEFT)
 
@@ -89,7 +88,7 @@ class MotorGui(Node):
         speed_frame = Frame(root)
         speed_frame.pack(fill=X)
 
-        self.spd_lbl = Label(speed_frame, text="Speed rev/s: ")
+        self.spd_lbl = Label(speed_frame, text="Speed rad/s: ")
         self.spd_lbl.pack(side=LEFT)
         self.mot_1_spd_lbl = Label(speed_frame, text="XXX")
         self.mot_1_spd_lbl.pack(side=LEFT)
@@ -104,12 +103,8 @@ class MotorGui(Node):
     def send_motor_once(self):
         msg = MotorCommand()
         msg.is_pwm = self.pwm_mode
-        if (self.pwm_mode):
-            msg.mot_1_req_rad_sec = float(self.m1.get())
-            msg.mot_2_req_rad_sec = float(self.m2.get())
-        else:
-            msg.mot_1_req_rad_sec = float(self.m1.get())
-            msg.mot_2_req_rad_sec = float(self.m2.get())
+        msg.mot_1_req_rad_sec = float(self.m1.get())
+        msg.mot_2_req_rad_sec = float(self.m2.get())
 
         self.publisher.publish(msg)
 
@@ -138,10 +133,8 @@ class MotorGui(Node):
         self.update_scale_limits()
 
     def motor_vel_callback(self, motor_vels):
-        mot_1_spd_rev_sec = motor_vels.mot_1_rad_sec / (2*math.pi)
-        mot_2_spd_rev_sec = motor_vels.mot_2_rad_sec / (2*math.pi)
-        self.mot_1_spd_lbl.config(text=f"{mot_1_spd_rev_sec:.2f}")
-        self.mot_2_spd_lbl.config(text=f"{mot_2_spd_rev_sec:.2f}")
+        self.mot_1_spd_lbl.config(text=f"{motor_vels.mot_1_rad_sec:.2f}")
+        self.mot_2_spd_lbl.config(text=f"{motor_vels.mot_2_rad_sec:.2f}")
 
     def switch_mode(self):
         self.set_mode(not self.pwm_mode)

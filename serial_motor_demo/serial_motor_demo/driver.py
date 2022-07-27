@@ -2,7 +2,6 @@ import rclpy
 from rclpy.node import Node
 from serial_motor_demo_msgs.msg import MotorCommand
 from serial_motor_demo_msgs.msg import MotorVels
-from serial_motor_demo_msgs.msg import EncoderVals
 import time
 import math
 import serial
@@ -60,7 +59,7 @@ class MotorDriver(Node):
         self.send_command(f"o {int(mot_1_pwm)} {int(mot_2_pwm)}")
 
     def send_feedback_motor_command(self, mot_1_req_rad_sec, mot_2_req_rad_sec):
-        self.send_command(f"m {mot_1_req_rad_sec} {mot_2_req_rad_sec}")
+        self.send_command(f"m {mot_1_req_rad_sec:.2f} {mot_2_req_rad_sec:.2f}")
 
     def send_encoder_read_command(self):
         resp = self.send_command(f"e")
@@ -81,10 +80,13 @@ class MotorDriver(Node):
     def check_encoders(self):
         resp = self.send_encoder_read_command()
         if (resp):
-            spd_msg = MotorVels()
-            spd_msg.mot_1_rad_sec = self.resp[0]
-            spd_msg.mot_2_rad_sec = self.resp[1]
-            self.speed_pub.publish(spd_msg)
+            self.publish_speed_msg(resp[0], resp[1])
+
+    def publish_speed_msg(self, mot_1_rad_sec, mot_2_rad_sec):
+        spd_msg = MotorVels()
+        spd_msg.mot_1_rad_sec = float(mot_1_rad_sec)
+        spd_msg.mot_2_rad_sec = float(mot_2_rad_sec)
+        self.speed_pub.publish(spd_msg)
 
     # Utility functions
 
@@ -115,19 +117,33 @@ class MotorDriver(Node):
         finally:
             self.mutex.release()
 
+    def read_command(self):
+        self.mutex.acquire()
+        try:
+            received = self.conn.readline()
+            decoded = received.decode("utf-8")
+            stripped = decoded.strip("\n")
+            args = stripped.split(" ")
+            if (self.debug_serial_cmds):
+                print("Received: {stripped}")
+            if args[0] == "e" and len(args) == 3:
+                self.publish_speed_msg(args[1], args[2])
+        finally:
+            self.mutex.release()
+
+
     def close_conn(self):
         self.conn.close()
 
 
 def main(args=None):
-
     rclpy.init(args=args)
 
     motor_driver = MotorDriver()
 
     while rclpy.ok():
-        rclpy.spin_once(motor_driver)
-        # motor_driver.check_encoders()
+        rclpy.spin_once(motor_driver, timeout_sec = 0)
+        motor_driver.read_command()
 
     motor_driver.close_conn()
     motor_driver.destroy_node()
