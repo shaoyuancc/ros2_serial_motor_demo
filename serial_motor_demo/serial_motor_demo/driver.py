@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+import geometry_msgs.msg
 from serial_motor_demo_msgs.msg import MotorCommand
 from serial_motor_demo_msgs.msg import MotorVels
 import time
@@ -28,10 +29,16 @@ class MotorDriver(Node):
 
         # Setup topics & services
 
-        self.subscription = self.create_subscription(
+        self.motor_command_sub = self.create_subscription(
             MotorCommand,
             'motor_command',
             self.motor_command_callback,
+            10)
+
+        self.twist_sub = self.create_subscription(
+            geometry_msgs.msg.Twist,
+            'cmd_vel',
+            self.cmd_vel_callback,
             10)
 
         self.speed_pub = self.create_publisher(MotorVels, 'motor_vels', 10)
@@ -58,8 +65,11 @@ class MotorDriver(Node):
     def send_pwm_motor_command(self, mot_1_pwm, mot_2_pwm):
         self.send_command(f"o {int(mot_1_pwm)} {int(mot_2_pwm)}")
 
-    def send_feedback_motor_command(self, mot_1_req_rad_sec, mot_2_req_rad_sec):
-        self.send_command(f"m {mot_1_req_rad_sec:.2f} {mot_2_req_rad_sec:.2f}")
+    def send_feedback_motor_command(self, mot_1_req_rpm, mot_2_req_rpm):
+        self.send_command(f"m {mot_1_req_rpm:.2f} {mot_2_req_rpm:.2f}")
+
+    def send_velocity_motor_command(self, linear_x_m_sec, angular_z_rad_sec):
+        self.send_command(f"t {linear_x_m_sec:.4f} {angular_z_rad_sec:.4f}")
 
     def send_encoder_read_command(self):
         resp = self.send_command(f"e")
@@ -72,20 +82,23 @@ class MotorDriver(Node):
     def motor_command_callback(self, motor_command):
         if (motor_command.is_pwm):
             self.send_pwm_motor_command(
-                motor_command.mot_1_req_rad_sec, motor_command.mot_2_req_rad_sec)
+                motor_command.mot_1_req_rpm, motor_command.mot_2_req_rpm)
         else:
             self.send_feedback_motor_command(
-                motor_command.mot_1_req_rad_sec, motor_command.mot_2_req_rad_sec)
+                motor_command.mot_1_req_rpm, motor_command.mot_2_req_rpm)
+
+    def cmd_vel_callback(self, twist):
+        self.send_velocity_motor_command(twist.linear.x, twist.angular.z)
 
     def check_encoders(self):
         resp = self.send_encoder_read_command()
         if (resp):
             self.publish_speed_msg(resp[0], resp[1])
 
-    def publish_speed_msg(self, mot_1_rad_sec, mot_2_rad_sec):
+    def publish_speed_msg(self, mot_1_rpm, mot_2_rpm):
         spd_msg = MotorVels()
-        spd_msg.mot_1_rad_sec = float(mot_1_rad_sec)
-        spd_msg.mot_2_rad_sec = float(mot_2_rad_sec)
+        spd_msg.mot_1_rpm = float(mot_1_rpm)
+        spd_msg.mot_2_rpm = float(mot_2_rpm)
         self.speed_pub.publish(spd_msg)
 
     # Utility functions
@@ -131,7 +144,6 @@ class MotorDriver(Node):
         finally:
             self.mutex.release()
 
-
     def close_conn(self):
         self.conn.close()
 
@@ -142,7 +154,7 @@ def main(args=None):
     motor_driver = MotorDriver()
 
     while rclpy.ok():
-        rclpy.spin_once(motor_driver, timeout_sec = 0)
+        rclpy.spin_once(motor_driver, timeout_sec=0)
         motor_driver.read_command()
 
     motor_driver.close_conn()

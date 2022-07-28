@@ -4,7 +4,7 @@
   <name>serial_motor_demo</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="josh.newans@gmail.com">newans</maintainer>
+  <maintainer email="flossy_lineage.0b@icloud.com">Shao Yuan</maintainer>
   <license>TODO: License declaration</license>
 
   <test_depend>ament_copyright</test_depend>
@@ -12,6 +12,7 @@
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
 
+  <depend>geometry_msgs</depend>
   <depend>rclpy</depend>
   <depend>serial_motor_demo_msgs</depend>
 

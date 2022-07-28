@@ -41,7 +41,7 @@ class MotorGui(Node):
         slider_max_frame = Frame(root)
         slider_max_frame.pack(fill=X)
         self.slider_max_label = Label(
-            slider_max_frame, text="Max Rev/sec", state="disabled")
+            slider_max_frame, text="Max RPM", state="disabled")
         self.slider_max_label.pack(side=LEFT)
         self.slider_max_val_box = Entry(slider_max_frame, state="disabled")
         self.slider_max_val_box.pack(side=LEFT)
@@ -88,7 +88,7 @@ class MotorGui(Node):
         speed_frame = Frame(root)
         speed_frame.pack(fill=X)
 
-        self.spd_lbl = Label(speed_frame, text="Speed rad/s: ")
+        self.spd_lbl = Label(speed_frame, text="Speed rpm: ")
         self.spd_lbl.pack(side=LEFT)
         self.mot_1_spd_lbl = Label(speed_frame, text="XXX")
         self.mot_1_spd_lbl.pack(side=LEFT)
@@ -103,16 +103,16 @@ class MotorGui(Node):
     def send_motor_once(self):
         msg = MotorCommand()
         msg.is_pwm = self.pwm_mode
-        msg.mot_1_req_rad_sec = float(self.m1.get())
-        msg.mot_2_req_rad_sec = float(self.m2.get())
+        msg.mot_1_req_rpm = float(self.m1.get())
+        msg.mot_2_req_rpm = float(self.m2.get())
 
         self.publisher.publish(msg)
 
     def stop_motors(self):
         msg = MotorCommand()
         msg.is_pwm = self.pwm_mode
-        msg.mot_1_req_rad_sec = 0.0
-        msg.mot_2_req_rad_sec = 0.0
+        msg.mot_1_req_rpm = 0.0
+        msg.mot_2_req_rpm = 0.0
         self.publisher.publish(msg)
 
     def set_mode(self, new_mode):
@@ -133,8 +133,8 @@ class MotorGui(Node):
         self.update_scale_limits()
 
     def motor_vel_callback(self, motor_vels):
-        self.mot_1_spd_lbl.config(text=f"{motor_vels.mot_1_rad_sec:.2f}")
-        self.mot_2_spd_lbl.config(text=f"{motor_vels.mot_2_rad_sec:.2f}")
+        self.mot_1_spd_lbl.config(text=f"{motor_vels.mot_1_rpm:.2f}")
+        self.mot_2_spd_lbl.config(text=f"{motor_vels.mot_2_rpm:.2f}")
 
     def switch_mode(self):
         self.set_mode(not self.pwm_mode)
